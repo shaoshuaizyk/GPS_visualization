@@ -132,11 +132,11 @@ def haversine(lat1, lon1, lat2, lon2):
 
 # GPS数据记录和可视化类
 class GPSVisualizer:
-    def __init__(self, start_lat_on_map, start_lon_on_map, device, baud=115200, max_points=1200, save_mp4=False, sim=False):
+    def __init__(self, start_lat_on_map, start_lon_on_map, device, baud=115200, max_points=1200, sim=False):
         self.max_points = max_points # 可视化数据长度
         self.device = device
         self.baud = baud
-        self.save_mp4 = save_mp4
+        # self.save_mp4 = save_mp4
         self.sim = sim  # 是否模拟数据
         self.log_filename = f"./gps_logs/gps_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
         self.lat_lon_points = list()  # 存储经纬度点
@@ -154,7 +154,7 @@ class GPSVisualizer:
         self.start_easting_on_map, self.start_northing_on_map, _, __ = utm.from_latlon(self.start_lat_on_map, self.start_lon_on_map)
         
         # 创建图形和坐标轴
-        self.fig, (self.ax1, self.ax2) = plt.subplots(2,1,figsize=(4, 8))
+        self.fig, (self.ax1, self.ax2) = plt.subplots(2,1,figsize=(6, 12))
         self.trajectory_line, = self.ax1.plot([], [], 'b-', linewidth=1.5, alpha=0.7, label="轨迹线")  # 轨迹线
         self.start_point_on_map, = self.ax1.plot([], [], 'go', markersize=8, label='地图起始点')  # 起始点
         self.current_point, = self.ax1.plot([], [], 'ro', markersize=6, label="当前点")     # 当前点
@@ -369,7 +369,7 @@ class GPSVisualizer:
         end_easting_on_map, end_northing_on_map, _, _ = utm.from_latlon(end_lat_on_map, end_lon_on_map)
         
         # 保存总轨迹到PNG文件 
-        fig, ax = plt.subplots(figsize=(10, 8))
+        fig1, ax1 = plt.subplots(figsize=(10, 8))
         x_vals, y_vals = zip(*self.utm_points)
         x_min, x_max = min((list(x_vals))+[self.start_easting_on_map, end_easting_on_map]), max(list(x_vals)+[self.start_easting_on_map, end_easting_on_map])
         y_min, y_max = min(list(y_vals)+[self.start_northing_on_map, end_northing_on_map]), max(list(y_vals)+[self.start_northing_on_map, end_northing_on_map])
@@ -378,39 +378,74 @@ class GPSVisualizer:
         xs = np.array(x_vals) - ref_x
         ys = np.array(y_vals) - ref_y
 
-        ax.plot(xs, ys, 'b-', linewidth=1.5, alpha=0.7, label="总轨迹线")
-        ax.set_xlabel('东向距离 (米)')
-        ax.set_ylabel('北向距离 (米)')
-        ax.set_title('总GPS轨迹')
-        ax.grid(True, linestyle='--', alpha=0.6)
+        ax1.plot(xs, ys, 'b-', linewidth=1.5, alpha=0.7, label="总轨迹线")
+        ax1.set_xlabel('东向距离 (米)')
+        ax1.set_ylabel('北向距离 (米)')
+        ax1.set_title('总GPS轨迹')
+        ax1.grid(True, linestyle='--', alpha=0.6)
 
         # 绘制地图起点和终点
-        ax.plot([self.start_easting_on_map-ref_x, end_easting_on_map-ref_x],[self.start_northing_on_map-ref_y, end_northing_on_map-ref_y], 'ro--', markersize=4, alpha=0.5, label='地图参考起点/终点')
+        ax1.plot([self.start_easting_on_map-ref_x, end_easting_on_map-ref_x],[self.start_northing_on_map-ref_y, end_northing_on_map-ref_y], 'ro--', markersize=4, alpha=0.5, label='地图参考起点/终点')
         
         ref_moving_distance = np.sqrt((end_easting_on_map - self.start_easting_on_map) ** 2 + (end_northing_on_map - self.start_northing_on_map) ** 2)
             
         # 计算轨迹范围
         start_utm = self.utm_points[0] if self.utm_points else (0, 0)
         end_utm = self.utm_points[-1] if self.utm_points else (0, 0)
-        ax.plot([start_utm[0]-ref_x], [start_utm[1]-ref_y], 'go', markersize=4, alpha=0.5, label='起点')
-        ax.plot([end_utm[0]-ref_x], [end_utm[1]-ref_y], 'ko', markersize=4, alpha=0.5, label='终点')
-        ax.set_xlim(-half_range * 1.1, half_range * 1.1)
-        ax.set_ylim(-half_range * 1.1, half_range * 1.1)
-        ax.legend(loc='upper right')
-        ax.text(0.02, 0.98, f"总移动距离: {self.utm_moving_distance:.2f} 米\n"
+        ax1.plot([start_utm[0]-ref_x], [start_utm[1]-ref_y], 'go', markersize=4, alpha=0.5, label='起点')
+        ax1.plot([end_utm[0]-ref_x], [end_utm[1]-ref_y], 'ko', markersize=4, alpha=0.5, label='终点')
+        ax1.set_xlim(-half_range * 1.1, half_range * 1.1)
+        ax1.set_ylim(-half_range * 1.1, half_range * 1.1)
+        ax1.legend(loc='upper right')
+        ax1.text(0.02, 0.98, f"总移动距离: {self.utm_moving_distance:.2f} 米\n"
                             f"参考点/线移动距离: {ref_moving_distance:.2f} 米\n"
                             f"地图起点经纬度: ({self.start_lat_on_map:.7f}, {self.start_lon_on_map:.7f})\n"
                             f"地图终点经纬度: ({end_lat_on_map:.7f}, {end_lon_on_map:.7f})",
-                transform=ax.transAxes, verticalalignment='top',
+                transform=ax1.transAxes, verticalalignment='top',
                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
         # 横纵坐标轴比例相同
-        ax.set_aspect('equal', adjustable='box')
+        ax1.set_aspect('equal', adjustable='box')
         plt.tight_layout()
         plt.show()
 
         png_filename = f"./gps_pngs/gps_track_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-        fig.savefig(png_filename, dpi=300)
+        fig1.savefig(png_filename, dpi=300)
         print(f"{TerminalColors.OKGREEN}图表已保存到: {png_filename}{TerminalColors.ENDC}")
+
+        # 画出起点和终点的放大图
+        fig2, (ax2, ax3) = plt.subplots(2, 1, figsize=(6, 13))
+
+        ax2.plot(np.array(x_vals) - self.start_easting_on_map, np.array(y_vals) - self.start_northing_on_map, 'b-', linewidth=1.5, alpha=0.7, label="总轨迹线")
+        ax2.set_xlabel('东向距离 (米)')
+        ax2.set_ylabel('北向距离 (米)')
+        ax2.set_title('GPS轨迹放大图 (起点)')
+        ax2.grid(True, linestyle='--', alpha=0.6)
+        ax2.plot([0], [0], 'go', markersize=4, alpha=0.5, label='起点')
+        ax2.set_xlim(-10, 10)
+        ax2.set_ylim(-10, 10)
+        ax2.legend(loc='upper right')
+        ax2.set_aspect('equal', adjustable='box')
+        # ax2.text(0.02, 0.98, f"起点经纬度: ({self.start_lat_on_map:.7f}, {self.start_lon_on_map:.7f})",
+        #          transform=ax2.transAxes, verticalalignment='top',
+        #          bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        ax3.plot(np.array(x_vals) - end_easting_on_map, np.array(y_vals) - end_northing_on_map, 'b-', linewidth=1.5, alpha=0.7, label="总轨迹线")
+        ax3.set_xlabel('东向距离 (米)')
+        ax3.set_ylabel('北向距离 (米)')
+        ax3.set_title('GPS轨迹放大图 (终点)')
+        ax3.grid(True, linestyle='--', alpha=0.6)
+        ax3.plot([0], [0], 'ro', markersize=4, alpha=0.5, label='终点')
+        ax3.set_xlim(-10, 10)
+        ax3.set_ylim(-10, 10)
+        ax3.legend(loc='upper right')
+        ax3.set_aspect('equal', adjustable='box')
+        # ax3.text(0.02, 0.98, f"终点经纬度: ({end_lat_on_map:.7f}, {end_lon_on_map:.7f})",
+        #          transform=ax3.transAxes, verticalalignment='top',
+        #             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        plt.tight_layout()
+        plt.show()
+        png_filename_zoom = f"./gps_pngs/gps_track_zoom_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+        fig2.savefig(png_filename_zoom, dpi=300)
 
         # 保存动画为mp4文件
         # if self.save_mp4:
@@ -422,7 +457,7 @@ class GPSVisualizer:
         #     print(f"{TerminalColors.OKGREEN}动画已保存到: ./gps_mp4/gps_animation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4{TerminalColors.ENDC}")
 
 # 主程序
-def main(lat_on_map, lon_on_map, baud=115200, max_points=1200, save_mp4=False, sim=False):
+def main(lat_on_map, lon_on_map, baud=115200, max_points=1200, sim=False):
     print_header()
     
     # 选择设备
@@ -441,7 +476,7 @@ def main(lat_on_map, lon_on_map, baud=115200, max_points=1200, save_mp4=False, s
         os.makedirs('gps_pngs')
 
     # 创建并启动可视化器
-    visualizer = GPSVisualizer(lat_on_map, lon_on_map, device, baud=baud, max_points=max_points, save_mp4=save_mp4, sim=sim)
+    visualizer = GPSVisualizer(lat_on_map, lon_on_map, device, baud=baud, max_points=max_points, sim=sim)
     visualizer.start()
 
 if __name__ == "__main__":
@@ -458,11 +493,11 @@ if __name__ == "__main__":
     lon_on_map = args.lon
     baud = args.baud
     max_points = args.max_points
-    save_mp4 = args.save_mp4
+    # save_mp4 = args.save_mp4
     sim = args.sim
     if sim:
         print(f"{TerminalColors.WARNING}模拟数据模式已启用，实际GPS数据将不会被记录{TerminalColors.ENDC}")
         baud = 9600  # 模拟数据波特率设置为较低值
     else:
         print(f"{TerminalColors.OKGREEN}实际GPS数据记录模式已启用{TerminalColors.ENDC}")
-    main(lat_on_map, lon_on_map, baud, max_points, save_mp4, sim)
+    main(lat_on_map, lon_on_map, baud, max_points, sim)
